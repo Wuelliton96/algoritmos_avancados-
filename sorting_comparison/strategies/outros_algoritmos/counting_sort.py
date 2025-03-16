@@ -9,18 +9,27 @@ class SortingStrategy:
     def sort(self, data):
         pass
 
+    def get_metrics(self):
+        """Retorna métricas padrão (caso algum algoritmo não implemente métricas)"""
+        return {
+            "comparisons": 0,
+            "swaps": 0
+        }
+
 class CountingSort(SortingStrategy):
     """Implementação do Counting Sort"""
     def __init__(self):
-        self.comparisons = 0
-        self.swaps = 0  
+        self.comparisons = 0  
+        self.swaps = 0 
+        self.histogram = {}  
+
     def sort(self, arr):
         """Ordena o array usando Counting Sort"""
         if not arr:
             return arr
 
         max_value = max(arr)  
-        min_value = min(arr) 
+        min_value = min(arr)  
         range_of_elements = max_value - min_value + 1  
 
         count = [0] * range_of_elements
@@ -28,6 +37,7 @@ class CountingSort(SortingStrategy):
 
         for num in arr:
             count[num - min_value] += 1
+            self.histogram[num] = self.histogram.get(num, 0) + 1  
 
         for i in range(1, len(count)):
             count[i] += count[i - 1]
@@ -37,6 +47,16 @@ class CountingSort(SortingStrategy):
             count[num - min_value] -= 1
 
         return output
+
+    def get_metrics(self):
+        """Retorna métricas detalhadas do algoritmo"""
+        return {
+            "comparisons": self.comparisons,  
+            "swaps": self.swaps,  
+            "unique_numbers": len(self.histogram),
+            "most_frequent": max(self.histogram, key=self.histogram.get, default=None),
+            "most_frequent_count": max(self.histogram.values(), default=0)
+        }
 
 class SortContext:
     """Contexto que usa uma estratégia de ordenação"""
@@ -70,13 +90,14 @@ if __name__ == "__main__":
 
     execution_time = (end_time - start_time) * 1000  
 
+    metrics = counting_sort.get_metrics()
+
     with tracer.start_as_current_span("counting_sort_execution") as span:
         span.set_attribute("algorithm", "Counting Sort")
         span.set_attribute("dataset_size", len(dataset))
         span.set_attribute("execution_time_ms", execution_time)
-        span.set_attribute("comparisons", counting_sort.comparisons)
-        span.set_attribute("swaps", counting_sort.swaps)
+        for key, value in metrics.items():
+            span.set_attribute(key, value)
 
     print(f"Counting Sort concluído em {execution_time:.2f} ms")
-    print(f"Comparações: {counting_sort.comparisons}")  
-    print(f"Trocas: {counting_sort.swaps}")  
+    print(f"Métricas:\n" + "\n".join(f"  {key}: {value}" for key, value in metrics.items()))

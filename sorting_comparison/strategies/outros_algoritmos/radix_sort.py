@@ -5,18 +5,21 @@ from opentelemetry import trace
 tracer = trace.get_tracer(__name__)
 
 class SortingStrategy:
-    """Interface para a estratégia de ordenação"""
     def sort(self, data):
         pass
 
+    def get_metrics(self):
+        return {
+            "comparisons": 0,
+            "swaps": 0
+        }
+
 class RadixSort(SortingStrategy):
-    """Implementação do Radix Sort"""
     def __init__(self):
         self.comparisons = 0
         self.swaps = 0  
 
     def counting_sort(self, arr, exp):
-        """Ordenação estável baseada no dígito específico (exp)"""
         n = len(arr)
         output = [0] * n
         count = [0] * 10  
@@ -38,7 +41,6 @@ class RadixSort(SortingStrategy):
         return output
 
     def sort(self, arr):
-        """Ordena o array usando Radix Sort"""
         if not arr:
             return arr
 
@@ -51,8 +53,13 @@ class RadixSort(SortingStrategy):
 
         return arr
 
+    def get_metrics(self):
+        return {
+            "comparisons": self.comparisons,
+            "swaps": self.swaps
+        }
+
 class SortContext:
-    """Contexto que usa uma estratégia de ordenação"""
     def __init__(self, strategy: SortingStrategy):
         self.strategy = strategy
 
@@ -63,7 +70,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, "..", "..", "data", "dataset.txt")  
 
 def load_data(filename):
-    """Carrega os dados do arquivo"""
     with open(filename, "r") as file:
         return [int(line.strip()) for line in file.readlines()]
 
@@ -83,13 +89,14 @@ if __name__ == "__main__":
 
     execution_time = (end_time - start_time) * 1000 
 
+    metrics = radix_sort.get_metrics()
+
     with tracer.start_as_current_span("radix_sort_execution") as span:
         span.set_attribute("algorithm", "Radix Sort")
         span.set_attribute("dataset_size", len(dataset))
         span.set_attribute("execution_time_ms", execution_time)
-        span.set_attribute("comparisons", radix_sort.comparisons)
-        span.set_attribute("swaps", radix_sort.swaps)
+        for key, value in metrics.items():
+            span.set_attribute(key, value)
 
     print(f"Radix Sort concluído em {execution_time:.2f} ms")
-    print(f"Comparações: {radix_sort.comparisons}")  
-    print(f"Trocas: {radix_sort.swaps}")  
+    print(f"Métricas:\n" + "\n".join(f"  {key}: {value}" for key, value in metrics.items()))

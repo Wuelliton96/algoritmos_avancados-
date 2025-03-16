@@ -9,6 +9,13 @@ class SortingStrategy:
     def sort(self, data):
         pass
 
+    def get_metrics(self):
+        """Retorna métricas padrão para estratégias de ordenação"""
+        return {
+            "comparisons": 0,
+            "swaps": 0
+        }
+
 class HeapSort(SortingStrategy):
     """Implementação do Heap Sort"""
     def __init__(self):
@@ -21,32 +28,43 @@ class HeapSort(SortingStrategy):
         left = 2 * i + 1
         right = 2 * i + 2
 
-        if left < n and arr[left] > arr[largest]:
-            largest = left
-            self.comparisons += 1  
+        if left < n:
+            self.comparisons += 1
+            if arr[left] > arr[largest]:
+                largest = left
 
-        if right < n and arr[right] > arr[largest]:
-            largest = right
-            self.comparisons += 1 
+        if right < n:
+            self.comparisons += 1
+            if arr[right] > arr[largest]:
+                largest = right
 
         if largest != i:
             arr[i], arr[largest] = arr[largest], arr[i]  
-            self.swaps += 1 
-            self.heapify(arr, n, largest)  
+            self.swaps += 1
+            self.heapify(arr, n, largest)
 
     def sort(self, arr):
         """Ordena o array usando Heap Sort"""
         n = len(arr)
 
+        # Construção do heap (heapify para cada nó não folha)
         for i in range(n // 2 - 1, -1, -1):
             self.heapify(arr, n, i)
 
+        # Extração dos elementos do heap um por um
         for i in range(n - 1, 0, -1):
             arr[i], arr[0] = arr[0], arr[i]  
             self.swaps += 1
             self.heapify(arr, i, 0)
 
         return arr
+
+    def get_metrics(self):
+        """Retorna métricas detalhadas do Heap Sort"""
+        return {
+            "comparisons": self.comparisons,
+            "swaps": self.swaps
+        }
 
 class SortContext:
     """Contexto que usa uma estratégia de ordenação"""
@@ -77,16 +95,16 @@ if __name__ == "__main__":
     start_time = time.time()
     sorted_data = context.execute_sort(dataset.copy())
     end_time = time.time()
-
     execution_time = (end_time - start_time) * 1000  
+
+    metrics = heap_sort.get_metrics()
 
     with tracer.start_as_current_span("heap_sort_execution") as span:
         span.set_attribute("algorithm", "Heap Sort")
         span.set_attribute("dataset_size", len(dataset))
         span.set_attribute("execution_time_ms", execution_time)
-        span.set_attribute("comparisons", heap_sort.comparisons)
-        span.set_attribute("swaps", heap_sort.swaps)
+        for key, value in metrics.items():
+            span.set_attribute(key, value)
 
     print(f"Heap Sort concluído em {execution_time:.2f} ms")
-    print(f"Comparações: {heap_sort.comparisons}")
-    print(f"Trocas: {heap_sort.swaps}")
+    print(f"Métricas:\n" + "\n".join(f"  {key}: {value}" for key, value in metrics.items()))
