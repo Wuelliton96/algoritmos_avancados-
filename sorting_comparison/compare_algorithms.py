@@ -14,6 +14,7 @@ from strategies.outros_algoritmos.shell_sort import ShellSort
 
 from utils.performance_analyzer import PerformanceAnalyzer
 from utils.file_handler import FileHandler
+from report import SortingExecutor
 
 input_filepath = os.path.join("data", "dataset.txt")
 
@@ -25,3 +26,6 @@ results = [PerformanceAnalyzer.measure_performance(algo, array) for algo in algo
 
 for result in results:
     print(result)
+
+txt_sorter = SortingExecutor()
+txt_sorter.execute_sorting()
